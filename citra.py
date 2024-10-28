@@ -32,7 +32,7 @@ def simpan_citra(citra, nama_file):
     st.success(f"Citra berhasil disimpan sebagai {nama_file}")
 
 # Judul Aplikasi
-st.title("Aplikasi Pengolahan Citra")
+st.title("Pengolahan Citra Kelompok Esigma")
 
 # Input Upload Gambar
 uploaded_file = st.file_uploader("Upload gambar", type=["jpg", "png", "jpeg"])
