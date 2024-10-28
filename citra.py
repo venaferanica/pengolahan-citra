@@ -1,34 +1,34 @@
-import streamlit as st
-import cv2
-import numpy as np
-from matplotlib import pyplot as plt
-import os  # Menambahkan impor os untuk mengelola file
+import os
 
-# Fungsi untuk menampilkan gambar dengan konversi BGR ke RGB
+import numpy as np
+import streamlit as st
+from matplotlib import pyplot as plt
+from PIL import Image, ImageFilter, ImageOps
+
+
+# Fungsi untuk menampilkan gambar
 def tampilkan_judul(citra, judul):
-    if len(citra.shape) == 3:  # Citra berwarna (BGR)
-        citra = cv2.cvtColor(citra, cv2.COLOR_BGR2RGB)
     st.image(citra, caption=judul, use_column_width=True)
 
 # Fungsi untuk membuat dan menampilkan histogram sebagai bar plot
 def tampilkan_histogram(citra):
     fig, ax = plt.subplots()
-    if len(citra.shape) == 3:  # Histogram untuk gambar berwarna (BGR)
+    if len(citra.shape) == 3:  # Histogram untuk gambar berwarna
         color = ('b', 'g', 'r')
         for i, col in enumerate(color):
-            hist = cv2.calcHist([citra], [i], None, [256], [0, 256])
-            ax.bar(np.arange(256), hist.ravel(), color=col, alpha=0.5, width=1.0)
-        ax.set_title('Histogram (BGR)')
+            hist = np.histogram(citra[:, :, i], bins=256, range=(0, 256))[0]
+            ax.bar(np.arange(256), hist, color=col, alpha=0.5, width=1.0)
+        ax.set_title('Histogram (RGB)')
     else:  # Histogram untuk gambar grayscale
-        hist = cv2.calcHist([citra], [0], None, [256], [0, 256])
-        ax.bar(np.arange(256), hist.ravel(), color='black', alpha=0.7, width=1.0)
+        hist, _ = np.histogram(citra.flatten(), bins=256, range=(0, 256))
+        ax.bar(np.arange(256), hist, color='black', alpha=0.7, width=1.0)
         ax.set_title('Histogram (Grayscale)')
     ax.set_xlim([0, 256])
     st.pyplot(fig)
 
 # Fungsi untuk menyimpan citra hasil ke file lokal
 def simpan_citra(citra, nama_file):
-    cv2.imwrite(nama_file, citra)
+    Image.fromarray(citra.astype(np.uint8)).save(nama_file)
     st.success(f"Citra berhasil disimpan sebagai {nama_file}")
 
 # Judul Aplikasi
@@ -38,9 +38,9 @@ st.title("Pengolahan Citra Kelompok Esigma")
 uploaded_file = st.file_uploader("Upload gambar", type=["jpg", "png", "jpeg"])
 
 if uploaded_file is not None:
-    # Membaca gambar dengan OpenCV
-    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    img = cv2.imdecode(file_bytes, 1)
+    # Membaca gambar dengan Pillow
+    img = Image.open(uploaded_file)
+    img_np = np.array(img)
 
     # Dapatkan nama file asli
     original_filename = uploaded_file.name
@@ -67,31 +67,28 @@ if uploaded_file is not None:
     ))
 
     # Fungsi untuk mengolah gambar berdasarkan opsi
-    def olah_gambar(img, opsi):
+    def olah_gambar(img_np, opsi):
         if opsi == "Citra Asli":
-            return img
+            return img_np
         elif opsi == "Citra Negatif":
-            return 255 - img
+            return 255 - img_np
         elif opsi == "Grayscale":
-            return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
         elif opsi == "Rotasi 90 Derajat":
-            (h, w) = img.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, 90, 1.0)
-            return cv2.warpAffine(img, M, (w, h))
+            return np.rot90(img_np, 1)
         elif opsi == "Histogram Equalization":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            return cv2.equalizeHist(gray)
+            gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+            return np.array(ImageOps.equalize(Image.fromarray(gray.astype(np.uint8))))
         elif opsi == "Black & White":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _, bw = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+            gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+            bw = np.where(gray > 127, 255, 0).astype(np.uint8)
             return bw
         elif opsi == "Smoothing (Gaussian Blur)":
-            return cv2.GaussianBlur(img, (5, 5), 0)
+            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=2)))
 
     # Hasil pemrosesan untuk dua mode
-    hasil1 = olah_gambar(img, opsi1)
-    hasil2 = olah_gambar(img, opsi2)
+    hasil1 = olah_gambar(img_np, opsi1)
+    hasil2 = olah_gambar(img_np, opsi2)
 
     # Menampilkan gambar dan histogram untuk kedua mode
     col1, col2 = st.columns(2)
