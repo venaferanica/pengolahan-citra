@@ -1,10 +1,9 @@
-import os
-
-import numpy as np
 import streamlit as st
+from PIL import Image, ImageOps, ImageFilter
+import numpy as np
 from matplotlib import pyplot as plt
-from PIL import Image, ImageFilter, ImageOps
-
+import os
+from io import BytesIO
 
 # Fungsi untuk menampilkan gambar
 def tampilkan_judul(citra, judul):
@@ -26,10 +25,13 @@ def tampilkan_histogram(citra):
     ax.set_xlim([0, 256])
     st.pyplot(fig)
 
-# Fungsi untuk menyimpan citra hasil ke file lokal
-def simpan_citra(citra, nama_file):
-    Image.fromarray(citra.astype(np.uint8)).save(nama_file)
-    st.success(f"Citra berhasil disimpan sebagai {nama_file}")
+# Fungsi untuk mengkonversi array numpy menjadi bytes
+def convert_image_to_bytes(image_array):
+    img = Image.fromarray(image_array.astype(np.uint8))
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    byte_im = buf.getvalue()
+    return byte_im
 
 # Judul Aplikasi
 st.title("Pengolahan Citra Kelompok Esigma")
@@ -71,7 +73,7 @@ if uploaded_file is not None:
         if opsi == "Citra Asli":
             return img_np
         elif opsi == "Citra Negatif":
-            return 255 - img_np
+            return np.clip(255 - img_np.astype(np.uint8), 0, 255)
         elif opsi == "Grayscale":
             return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
         elif opsi == "Rotasi 90 Derajat":
@@ -100,12 +102,20 @@ if uploaded_file is not None:
         tampilkan_judul(hasil2, f"Hasil - {opsi2}")
         tampilkan_histogram(hasil2)
 
-        # Tombol untuk menyimpan hasil 2
-        if st.button(f"Simpan {opsi2}", key=f"simpan_{opsi2}_2"):
-            # Ubah ekstensi berdasarkan format file asli
-            ext = os.path.splitext(original_filename)[1]  # Mendapatkan ekstensi file asli
-            nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi2.lower().replace(' ', '_')}{ext}"
-            simpan_citra(hasil2, nama_file_simpan)
+        # Membuat nama file untuk hasil yang akan diunduh
+        ext = os.path.splitext(original_filename)[1]
+        nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi2.lower().replace(' ', '_')}{ext}"
+        
+        # Konversi hasil2 menjadi bytes
+        hasil2_bytes = convert_image_to_bytes(hasil2)
+        
+        # Tombol download
+        st.download_button(
+            label=f"Download {opsi2}",
+            data=hasil2_bytes,
+            file_name=nama_file_simpan,
+            mime=f"image/{ext[1:]}"  # Menggunakan ekstensi file asli untuk MIME type
+        )
 
 else:
     st.write("Silakan upload gambar terlebih dahulu.")
