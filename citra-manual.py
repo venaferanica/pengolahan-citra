@@ -50,9 +50,35 @@ def to_black_and_white(img_np, threshold):
 
 # Fungsi untuk Gaussian Blur
 def gaussian_blur(img_np, radius):
-    img = Image.fromarray(img_np.astype(np.uint8))
-    img_blur = img.filter(ImageFilter.GaussianBlur(radius=radius))
-    return np.array(img_blur)
+    # Create Gaussian kernel
+    size = 2 * radius + 1
+    kernel = np.zeros((size, size), dtype=np.float32)
+    sigma = radius / 3.0
+    total = 0.0
+
+    for x in range(-radius, radius + 1):
+        for y in range(-radius, radius + 1):
+            value = (1 / (2 * np.pi * sigma**2)) * np.exp(-(x**2 + y**2) / (2 * sigma**2))
+            kernel[x + radius, y + radius] = value
+            total += value
+
+    # Normalize the kernel
+    kernel /= total
+
+    # Pad the image to handle borders
+    pad_width = radius
+    padded_img = np.pad(img_np, ((pad_width, pad_width), (pad_width, pad_width), (0, 0)), mode='edge')
+    blurred_img = np.zeros_like(img_np)
+
+    # Apply Gaussian kernel to each pixel
+    for i in range(img_np.shape[0]):
+        for j in range(img_np.shape[1]):
+            for c in range(img_np.shape[2]):
+                blurred_img[i, j, c] = np.sum(
+                    kernel * padded_img[i:i + size, j:j + size, c]
+                )
+
+    return blurred_img.astype(np.uint8)
 
 # Fungsi untuk konversi ke grayscale
 def to_grayscale(img_np):
