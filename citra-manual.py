@@ -50,12 +50,16 @@ def to_black_and_white(img_np, threshold):
 
 # Fungsi untuk Gaussian Blur
 def gaussian_blur(img_np, radius):
+    if radius < 1:  # Ensure the radius is at least 1
+        raise ValueError("Radius must be a positive integer greater than 0.")
+    
     # Create Gaussian kernel
     size = 2 * radius + 1
     kernel = np.zeros((size, size), dtype=np.float32)
     sigma = radius / 3.0
     total = 0.0
 
+    # Calculate the Gaussian kernel values
     for x in range(-radius, radius + 1):
         for y in range(-radius, radius + 1):
             value = (1 / (2 * np.pi * sigma**2)) * np.exp(-(x**2 + y**2) / (2 * sigma**2))
