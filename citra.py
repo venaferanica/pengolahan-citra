@@ -56,7 +56,7 @@ if uploaded_file is not None:
     st.sidebar.subheader("Pilih Mode Pengolahan Citra")
     opsi = st.sidebar.selectbox("Mode Pengolahan", (
         "Citra Negatif", "Grayscale", "Rotasi", 
-        "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)"
+        "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)", "Channel RGB"
     ))
 
     # Input untuk threshold jika opsi "Black & White" dipilih
@@ -70,13 +70,15 @@ if uploaded_file is not None:
     # Field input untuk blur radius jika opsi "Smoothing (Gaussian Blur)" dipilih
     if opsi == "Smoothing (Gaussian Blur)":
         blur_radius = st.sidebar.text_input("Masukkan Blur Radius", value="2.0")
-
-        # Validasi input agar bisa dikonversi menjadi float
         try:
             blur_radius = float(blur_radius)
         except ValueError:
             st.sidebar.error("Masukkan nilai numerik yang valid untuk blur radius.")
             blur_radius = 10  # Default value jika input salah
+
+    # Pilihan channel jika opsi "Channel RGB" dipilih
+    if opsi == "Channel RGB":
+        channel = st.sidebar.selectbox("Pilih Channel", ("Red", "Green", "Blue"))
 
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
@@ -105,6 +107,11 @@ if uploaded_file is not None:
             return bw
         elif opsi == "Smoothing (Gaussian Blur)":
             return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=blur_radius)))
+        elif opsi == "Channel RGB":
+            # Separate channels and set other channels to zero
+            channel_map = {"Red": 0, "Green": 1, "Blue": 2}
+            img_channel = img_np[:, :, channel_map[channel]]
+            return img_channel
 
     # Pemrosesan gambar berdasarkan opsi
     hasil = olah_gambar(img_np, opsi)
