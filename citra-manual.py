@@ -165,7 +165,7 @@ if uploaded_file is not None:
         elif opsi == "Black & White":
             return to_black_and_white(img_np, threshold)
         elif opsi == "Smoothing (Gaussian Blur)":
-            return gaussian_blur(img_np, blur_radius)
+            return blurred_img.astype(np.uint8)
         elif opsi == "Channel RGB":
             return select_channel(img_np, channel)
 
