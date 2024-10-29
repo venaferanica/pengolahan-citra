@@ -67,6 +67,10 @@ if uploaded_file is not None:
     if opsi == "Rotasi":
         rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
 
+    # Input untuk nilai radius blur jika opsi "Smoothing (Gaussian Blur)" dipilih
+    if opsi == "Smoothing (Gaussian Blur)":
+        blur_radius = st.sidebar.number_input("Masukkan Radius Blur", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
         if opsi == "Citra Negatif":
@@ -81,20 +85,14 @@ if uploaded_file is not None:
             elif rotasi == 270:
                 return np.rot90(img_np, 3)
         elif opsi == "Histogram Equalization":
-            img_rgb = Image.fromarray(img_np.astype(np.uint8))
-            r, g, b = img_rgb.split()
-            r_eq = ImageOps.equalize(r)
-            g_eq = ImageOps.equalize(g)
-            b_eq = ImageOps.equalize(b)
-            img_eq = Image.merge("RGB", (r_eq, g_eq, b_eq))
-            result_img = np.array(img_eq)
-            return result_img
+            gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+            return np.array(ImageOps.equalize(Image.fromarray(gray.astype(np.uint8))))
         elif opsi == "Black & White":
             gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
             bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
             return bw
         elif opsi == "Smoothing (Gaussian Blur)":
-            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=2)))
+            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=blur_radius)))
 
     # Pemrosesan gambar berdasarkan opsi
     hasil = olah_gambar(img_np, opsi)
