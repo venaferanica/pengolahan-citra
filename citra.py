@@ -120,7 +120,7 @@ if uploaded_file is not None:
         label=f"Download {opsi}",
         data=hasil_bytes,
         file_name=nama_file_simpan,
-        mime=f"image/{ext[1:]}".
+        mime=f"image/{ext[1:]}"
     )
 
 else:
