@@ -9,42 +9,56 @@ from io import BytesIO
 def tampilkan_judul(citra, judul):
     st.image(citra, caption=judul, use_column_width=True)
 
-# Fungsi untuk membuat dan menampilkan histogram sebagai bar plot
+# Fungsi untuk menampilkan histogram sebagai bar plot
 def tampilkan_histogram(citra):
     fig, ax = plt.subplots()
-    if len(citra.shape) == 3:  # Histogram untuk gambar berwarna
-        color = ('b', 'g', 'r')
-        for i, col in enumerate(color):
+    if len(citra.shape) == 3:  # Gambar berwarna
+        colors = ('b', 'g', 'r')
+        for i, col in enumerate(colors):
             hist = np.histogram(citra[:, :, i], bins=256, range=(0, 256))[0]
             ax.bar(np.arange(256), hist, color=col, alpha=0.5, width=1.0)
         ax.set_title('Histogram (RGB)')
-    else:  # Histogram untuk gambar grayscale
+    else:  # Gambar grayscale
         hist, _ = np.histogram(citra.flatten(), bins=256, range=(0, 256))
         ax.bar(np.arange(256), hist, color='black', alpha=0.7, width=1.0)
         ax.set_title('Histogram (Grayscale)')
     ax.set_xlim([0, 256])
     st.pyplot(fig)
 
-# Fungsi untuk mengkonversi array numpy menjadi bytes
+# Konversi array numpy ke bytes untuk diunduh
 def convert_image_to_bytes(image_array):
     img = Image.fromarray(image_array.astype(np.uint8))
     buf = BytesIO()
     img.save(buf, format='PNG')
-    byte_im = buf.getvalue()
-    return byte_im
+    return buf.getvalue()
+
+# Fungsi untuk mengolah gambar berdasarkan opsi
+def olah_gambar(img_np, opsi, threshold=127, rotasi=90):
+    if opsi == "Citra Negatif":
+        return 255 - img_np
+    elif opsi == "Grayscale":
+        return np.array(ImageOps.grayscale(Image.fromarray(img_np)))
+    elif opsi == "Rotasi":
+        return np.rot90(img_np, k=rotasi // 90)
+    elif opsi == "Histogram Equalization":
+        r, g, b = Image.fromarray(img_np).split()
+        return np.array(Image.merge("RGB", [ImageOps.equalize(c) for c in (r, g, b)]))
+    elif opsi == "Black & White":
+        gray = np.array(ImageOps.grayscale(Image.fromarray(img_np)))
+        return np.where(gray > threshold, 255, 0).astype(np.uint8)
+    elif opsi == "Smoothing (Gaussian Blur)":
+        return np.array(Image.fromarray(img_np).filter(ImageFilter.GaussianBlur(radius=2)))
 
 # Judul Aplikasi
 st.title("Pengolahan Citra Kelompok Esigma")
 
-# Input Upload Gambar
+# Upload Gambar
 uploaded_file = st.file_uploader("Upload gambar", type=["jpg", "png", "jpeg"])
 
-if uploaded_file is not None:
-    # Membaca gambar dengan Pillow
+if uploaded_file:
     img = Image.open(uploaded_file)
     img_np = np.array(img)
 
-    # Menampilkan gambar dan histogram asli
     st.subheader("Gambar Asli dan Histogram")
     col1, col2 = st.columns(2)
     with col1:
@@ -52,54 +66,20 @@ if uploaded_file is not None:
     with col2:
         tampilkan_histogram(img_np)
 
-    # Sidebar untuk memilih mode pemrosesan gambar
     st.sidebar.subheader("Pilih Mode Pengolahan Citra")
-    opsi = st.sidebar.selectbox("Mode Pengolahan", (
+    opsi = st.sidebar.selectbox("Mode Pengolahan", [
         "Citra Negatif", "Grayscale", "Rotasi", 
-        "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)"
-    ))
+        "Histogram Equalization", "Black & White", 
+        "Smoothing (Gaussian Blur)"
+    ])
 
-    # Slider untuk threshold jika opsi "Black & White" dipilih
     if opsi == "Black & White":
-        threshold = st.sidebar.slider("Threshold Level", min_value=0, max_value=255, value=127)
+        threshold = st.sidebar.slider("Threshold", 0, 255, 127)
+    elif opsi == "Rotasi":
+        rotasi = st.sidebar.radio("Derajat Rotasi", [90, 180, 270])
 
-    # Button untuk memilih derajat rotasi jika opsi "Rotasi" dipilih
-    if opsi == "Rotasi":
-        rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
+    hasil = olah_gambar(img_np, opsi, threshold, rotasi)
 
-    # Fungsi untuk mengolah gambar berdasarkan opsi
-    def olah_gambar(img_np, opsi):
-        if opsi == "Citra Negatif":
-            return np.clip(255 - img_np.astype(np.uint8), 0, 255)
-        elif opsi == "Grayscale":
-            return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-        elif opsi == "Rotasi":
-            if rotasi == 90:
-                return np.rot90(img_np, 1)
-            elif rotasi == 180:
-                return np.rot90(img_np, 2)
-            elif rotasi == 270:
-                return np.rot90(img_np, 3)
-        elif opsi == "Histogram Equalization":
-            img_rgb = Image.fromarray(img_np.astype(np.uint8))
-            r, g, b = img_rgb.split()
-            r_eq = ImageOps.equalize(r)
-            g_eq = ImageOps.equalize(g)
-            b_eq = ImageOps.equalize(b)
-            img_eq = Image.merge("RGB", (r_eq, g_eq, b_eq))
-            result_img = np.array(img_eq)
-            return result_img
-        elif opsi == "Black & White":
-            gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-            bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
-            return bw
-        elif opsi == "Smoothing (Gaussian Blur)":
-            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=2)))
-
-    # Pemrosesan gambar berdasarkan opsi
-    hasil = olah_gambar(img_np, opsi)
-
-    # Menampilkan hasil pemrosesan dan histogram
     st.subheader(f"Hasil - {opsi}")
     col1, col2 = st.columns(2)
     with col1:
@@ -107,21 +87,12 @@ if uploaded_file is not None:
     with col2:
         tampilkan_histogram(hasil)
 
-    # Membuat nama file untuk hasil yang akan diunduh
-    original_filename = uploaded_file.name
-    ext = os.path.splitext(original_filename)[1]
-    nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi.lower().replace(' ', '_')}{ext}"
-
-    # Konversi hasil menjadi bytes
-    hasil_bytes = convert_image_to_bytes(hasil)
-
-    # Tombol download
+    nama_file = f"{os.path.splitext(uploaded_file.name)[0]}-{opsi.lower().replace(' ', '_')}.png"
     st.download_button(
         label=f"Download {opsi}",
-        data=hasil_bytes,
-        file_name=nama_file_simpan,
-        mime=f"image/{ext[1:]}"
+        data=convert_image_to_bytes(hasil),
+        file_name=nama_file,
+        mime="image/png"
     )
-
 else:
     st.write("Silakan upload gambar terlebih dahulu.")
