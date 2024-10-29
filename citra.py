@@ -81,42 +81,42 @@ if uploaded_file is not None:
         channel = st.sidebar.selectbox("Pilih Channel", ("Red", "Green", "Blue"))
 
     # Fungsi untuk mengolah gambar berdasarkan opsi
-def olah_gambar(img_np, opsi):
-    if opsi == "Citra Negatif":
-        return np.clip(255 - img_np.astype(np.uint8), 0, 255)
-    elif opsi == "Grayscale":
-        return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-    elif opsi == "Rotasi":
-        if rotasi == 90:
-            return np.rot90(img_np, 1)
-        elif rotasi == 180:
-            return np.rot90(img_np, 2)
-        elif rotasi == 270:
-            return np.rot90(img_np, 3)
-    elif opsi == "Histogram Equalization":
-        img_rgb = Image.fromarray(img_np.astype(np.uint8))
-        r, g, b = img_rgb.split()
-        r_eq = ImageOps.equalize(r)
-        g_eq = ImageOps.equalize(g)
-        b_eq = ImageOps.equalize(b)
-        img_eq = Image.merge("RGB", (r_eq, g_eq, b_eq))
-        return np.array(img_eq)
-    elif opsi == "Black & White":
-        gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-        bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
-        return bw
-    elif opsi == "Smoothing (Gaussian Blur)":
-        return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=blur_radius)))
-    elif opsi == "Channel RGB":
-        # Preserve color of the selected channel, set other channels to zero
-        channel_map = {"Red": (1, 2), "Green": (0, 2), "Blue": (0, 1)}
-        img_channel = np.zeros_like(img_np)
-        img_channel[:, :, channel_map[channel][0]] = 0
-        img_channel[:, :, channel_map[channel][1]] = 0
-        img_channel[:, :, "RGB".index(channel)] = img_np[:, :, "RGB".index(channel)]
-        return img_channel
+    def olah_gambar(img_np, opsi):
+        if opsi == "Citra Negatif":
+            return np.clip(255 - img_np.astype(np.uint8), 0, 255)
+        elif opsi == "Grayscale":
+            return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+        elif opsi == "Rotasi":
+            if rotasi == 90:
+                return np.rot90(img_np, 1)
+            elif rotasi == 180:
+                return np.rot90(img_np, 2)
+            elif rotasi == 270:
+                return np.rot90(img_np, 3)
+        elif opsi == "Histogram Equalization":
+            img_rgb = Image.fromarray(img_np.astype(np.uint8))
+            r, g, b = img_rgb.split()
+            r_eq = ImageOps.equalize(r)
+            g_eq = ImageOps.equalize(g)
+            b_eq = ImageOps.equalize(b)
+            img_eq = Image.merge("RGB", (r_eq, g_eq, b_eq))
+            return np.array(img_eq)
+        elif opsi == "Black & White":
+            gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+            bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
+            return bw
+        elif opsi == "Smoothing (Gaussian Blur)":
+            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=blur_radius)))
+        elif opsi == "Channel RGB":
+            # Preserve color of the selected channel, set other channels to zero
+            channel_map = {"Red": (1, 2), "Green": (0, 2), "Blue": (0, 1)}
+            img_channel = np.zeros_like(img_np)
+            img_channel[:, :, channel_map[channel][0]] = 0
+            img_channel[:, :, channel_map[channel][1]] = 0
+            img_channel[:, :, "RGB".index(channel)] = img_np[:, :, "RGB".index(channel)]
+            return img_channel
     # Pemrosesan gambar berdasarkan opsi
-    
+
     hasil = olah_gambar(img_np, opsi)
 
     # Menampilkan hasil pemrosesan dan histogram
