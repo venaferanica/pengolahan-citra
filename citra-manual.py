@@ -1,80 +1,164 @@
 import streamlit as st
+from PIL import Image, ImageOps, ImageFilter
+import numpy as np
+from matplotlib import pyplot as plt
 import os
 from io import BytesIO
-from PIL import Image
 
-# Fungsi untuk membaca file gambar sebagai byte
-def read_image_bytes(uploaded_file):
-    return uploaded_file.read()
+# Fungsi untuk menampilkan gambar dengan judul
+def tampilkan_judul(citra, judul):
+    st.image(citra, caption=judul, use_column_width=True)
 
-# Fungsi untuk menghitung citra negatif secara manual
-def citra_negatif(image_bytes):
-    return bytes([255 - byte for byte in image_bytes])
+# Fungsi untuk membuat dan menampilkan histogram sebagai bar plot
+def tampilkan_histogram(citra):
+    fig, ax = plt.subplots()
+    if len(citra.shape) == 3:  # Histogram untuk gambar berwarna
+        color = ('b', 'g', 'r')
+        for i, col in enumerate(color):
+            hist = np.histogram(citra[:, :, i], bins=256, range=(0, 256))[0]
+            ax.bar(np.arange(256), hist, color=col, alpha=0.5, width=1.0)
+        ax.set_title('Histogram (RGB)')
+    else:  # Histogram untuk gambar grayscale
+        hist, _ = np.histogram(citra.flatten(), bins=256, range=(0, 256))
+        ax.bar(np.arange(256), hist, color='black', alpha=0.7, width=1.0)
+        ax.set_title('Histogram (Grayscale)')
+    ax.set_xlim([0, 256])
+    st.pyplot(fig)
 
-# Fungsi untuk mengkonversi citra ke grayscale
-def grayscale(image_bytes):
-    grayscale_bytes = bytearray()
-    for i in range(0, len(image_bytes), 3):
-        r = image_bytes[i]
-        g = image_bytes[i + 1]
-        b = image_bytes[i + 2]
-        gray = int(0.299 * r + 0.587 * g + 0.114 * b)
-        grayscale_bytes.extend([gray] * 3)  # Ubah ke RGB dengan nilai yang sama
-    return bytes(grayscale_bytes)
+# Fungsi untuk mengkonversi array numpy menjadi bytes
+def convert_image_to_bytes(image_array):
+    img = Image.fromarray(image_array.astype(np.uint8))
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    byte_im = buf.getvalue()
+    return byte_im
 
-# Fungsi untuk mengkonversi bytes ke image
-def bytes_to_image(image_bytes):
-    return Image.frombytes('RGB', (width, height), image_bytes)
+# Fungsi untuk histogram equalization
+def histogram_equalization(img_np):
+    img_flat = img_np.flatten()
+    hist, bins = np.histogram(img_flat, bins=256, range=(0, 256))
+    cdf = hist.cumsum()
+    cdf_normalized = (cdf - cdf.min()) * 255 / (cdf.max() - cdf.min())
+    img_eq = np.interp(img_flat, bins[:-1], cdf_normalized).reshape(img_np.shape)
+    return img_eq.astype(np.uint8)
+
+# Fungsi untuk konversi ke hitam-putih
+def to_black_and_white(img_np, threshold):
+    gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+    bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
+    return bw
+
+# Fungsi untuk Gaussian Blur
+def gaussian_blur(img_np, radius):
+    img = Image.fromarray(img_np.astype(np.uint8))
+    img_blur = img.filter(ImageFilter.GaussianBlur(radius=radius))
+    return np.array(img_blur)
+
+# Fungsi untuk konversi ke grayscale
+def to_grayscale(img_np):
+    return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
+
+# Fungsi untuk memilih channel RGB
+def select_channel(img_np, channel):
+    img_channel = np.zeros_like(img_np)
+    channel_map = {"Red": 0, "Green": 1, "Blue": 2}
+    img_channel[:, :, channel_map[channel]] = img_np[:, :, channel_map[channel]]
+    return img_channel
 
 # Judul Aplikasi
-st.title("Pengolahan Citra Tanpa Library")
+st.title("Pengolahan Citra Kelompok Esigma")
 
 # Input Upload Gambar
 uploaded_file = st.file_uploader("Upload gambar", type=["jpg", "png", "jpeg"])
 
 if uploaded_file is not None:
-    # Membaca gambar sebagai bytes
-    image_bytes = read_image_bytes(uploaded_file)
+    # Membaca gambar dengan Pillow
+    img = Image.open(uploaded_file)
+    img_np = np.array(img)
 
-    # Menampilkan gambar asli
-    st.image(image_bytes, caption="Gambar Asli", use_column_width=True)
+    # Menampilkan gambar dan histogram asli
+    st.subheader("Gambar Asli dan Histogram")
+    col1, col2 = st.columns(2)
+    with col1:
+        tampilkan_judul(img_np, "Gambar Asli")
+    with col2:
+        tampilkan_histogram(img_np)
 
     # Sidebar untuk memilih mode pemrosesan gambar
     st.sidebar.subheader("Pilih Mode Pengolahan Citra")
-    opsi = st.sidebar.selectbox("Mode Pengolahan", ("Citra Negatif", "Grayscale"))
+    opsi = st.sidebar.selectbox("Mode Pengolahan", (
+        "Citra Negatif", "Grayscale", "Rotasi", 
+        "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)", "Channel RGB"
+    ))
+
+    # Input untuk threshold jika opsi "Black & White" dipilih
+    if opsi == "Black & White":
+        threshold = st.sidebar.number_input("Threshold Level", min_value=0, max_value=255, value=127)
+
+    # Button untuk memilih derajat rotasi jika opsi "Rotasi" dipilih
+    if opsi == "Rotasi":
+        rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
+
+    # Field input untuk blur radius jika opsi "Smoothing (Gaussian Blur)" dipilih
+    if opsi == "Smoothing (Gaussian Blur)":
+        blur_radius = st.sidebar.text_input("Masukkan Blur Radius", value="10")
+        try:
+            blur_radius = float(blur_radius)
+        except ValueError:
+            st.sidebar.error("Masukkan nilai numerik yang valid untuk blur radius.")
+            blur_radius = 10  # Default value jika input salah
+
+    # Pilihan channel jika opsi "Channel RGB" dipilih
+    if opsi == "Channel RGB":
+        channel = st.sidebar.selectbox("Pilih Channel", ("Red", "Green", "Blue"))
+
+    # Fungsi untuk mengolah gambar berdasarkan opsi
+    def olah_gambar(img_np, opsi):
+        if opsi == "Citra Negatif":
+            return np.clip(255 - img_np.astype(np.uint8), 0, 255)
+        elif opsi == "Grayscale":
+            return to_grayscale(img_np)
+        elif opsi == "Rotasi":
+            if rotasi == 90:
+                return np.rot90(img_np, 1)
+            elif rotasi == 180:
+                return np.rot90(img_np, 2)
+            elif rotasi == 270:
+                return np.rot90(img_np, 3)
+        elif opsi == "Histogram Equalization":
+            return histogram_equalization(img_np)
+        elif opsi == "Black & White":
+            return to_black_and_white(img_np, threshold)
+        elif opsi == "Smoothing (Gaussian Blur)":
+            return gaussian_blur(img_np, blur_radius)
+        elif opsi == "Channel RGB":
+            return select_channel(img_np, channel)
 
     # Pemrosesan gambar berdasarkan opsi
-    if opsi == "Citra Negatif":
-        hasil_bytes = citra_negatif(image_bytes)
-        hasil_caption = "Hasil - Citra Negatif"
-    elif opsi == "Grayscale":
-        hasil_bytes = grayscale(image_bytes)
-        hasil_caption = "Hasil - Grayscale"
+    hasil = olah_gambar(img_np, opsi)
 
-    # Konversi hasil bytes ke Image untuk menampilkan
-    try:
-        img = Image.frombytes('RGB', (width, height), hasil_bytes)
-        buffered = BytesIO()
-        img.save(buffered, format="PNG")
-        hasil_bytes = buffered.getvalue()
-    except Exception as e:
-        st.error(f"Error processing image: {e}")
-
-    # Menampilkan hasil pemrosesan
-    st.subheader(hasil_caption)
-    st.image(hasil_bytes, caption=hasil_caption, use_column_width=True)
+    # Menampilkan hasil pemrosesan dan histogram
+    st.subheader(f"Hasil - {opsi}")
+    col1, col2 = st.columns(2)
+    with col1:
+        tampilkan_judul(hasil, f"Hasil - {opsi}")
+    with col2:
+        tampilkan_histogram(hasil)
 
     # Membuat nama file untuk hasil yang akan diunduh
     original_filename = uploaded_file.name
     ext = os.path.splitext(original_filename)[1]
-    nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi.lower().replace(' ', '_')}.png"
+    nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi.lower().replace(' ', '_')}{ext}"
+
+    # Konversi hasil menjadi bytes
+    hasil_bytes = convert_image_to_bytes(hasil)
 
     # Tombol download
     st.download_button(
         label=f"Download {opsi}",
         data=hasil_bytes,
         file_name=nama_file_simpan,
-        mime="image/png"
+        mime=f"image/{ext[1:]}"
     )
 
 else:
