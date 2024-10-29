@@ -88,6 +88,7 @@ def gaussian_blur(img_np, radius):
 
     return blurred_img.astype(np.uint8)
 
+
 # Fungsi untuk konversi ke grayscale
 def to_grayscale(img_np):
     return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
