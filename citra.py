@@ -59,6 +59,10 @@ if uploaded_file is not None:
         "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)"
     ))
 
+    # Slider untuk threshold jika opsi "Black & White" dipilih
+    if opsi == "Black & White":
+        threshold = st.sidebar.slider("Threshold Level", min_value=0, max_value=255, value=127)
+
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
         if opsi == "Citra Negatif":
@@ -72,7 +76,8 @@ if uploaded_file is not None:
             return np.array(ImageOps.equalize(Image.fromarray(gray.astype(np.uint8))))
         elif opsi == "Black & White":
             gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-            return np.where(gray > 127, 255, 0).astype(np.uint8)
+            bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
+            return bw
         elif opsi == "Smoothing (Gaussian Blur)":
             return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=2)))
 
