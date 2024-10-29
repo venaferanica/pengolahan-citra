@@ -108,15 +108,12 @@ if uploaded_file is not None:
         elif opsi == "Smoothing (Gaussian Blur)":
             return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=blur_radius)))
         elif opsi == "Channel RGB":
-            # Preserve color of the selected channel, set other channels to zero
-            channel_map = {"Red": (1, 2), "Green": (0, 2), "Blue": (0, 1)}
-            img_channel = np.zeros_like(img_np)
-            img_channel[:, :, channel_map[channel][0]] = 0
-            img_channel[:, :, channel_map[channel][1]] = 0
-            img_channel[:, :, "RGB".index(channel)] = img_np[:, :, "RGB".index(channel)]
+            # Separate channels and set other channels to zero
+            channel_map = {"Red": 0, "Green": 1, "Blue": 2}
+            img_channel = img_np[:, :, channel_map[channel]]
             return img_channel
-    # Pemrosesan gambar berdasarkan opsi
 
+    # Pemrosesan gambar berdasarkan opsi
     hasil = olah_gambar(img_np, opsi)
 
     # Menampilkan hasil pemrosesan dan histogram
