@@ -55,7 +55,7 @@ if uploaded_file is not None:
     # Sidebar untuk memilih mode pemrosesan gambar
     st.sidebar.subheader("Pilih Mode Pengolahan Citra")
     opsi = st.sidebar.selectbox("Mode Pengolahan", (
-        "Citra Negatif", "Grayscale", "Rotasi 90 Derajat", 
+        "Citra Negatif", "Grayscale", "Rotasi", 
         "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)"
     ))
 
@@ -63,17 +63,23 @@ if uploaded_file is not None:
     if opsi == "Black & White":
         threshold = st.sidebar.slider("Threshold Level", min_value=0, max_value=255, value=127)
 
+    # Button untuk memilih derajat rotasi jika opsi "Rotasi" dipilih
     if opsi == "Rotasi":
         rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
-    
+
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
         if opsi == "Citra Negatif":
             return np.clip(255 - img_np.astype(np.uint8), 0, 255)
         elif opsi == "Grayscale":
             return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-        elif opsi == "Rotasi 90 Derajat":
-            return np.rot90(img_np, 1)
+        elif opsi == "Rotasi":
+            if rotasi == 90:
+                return np.rot90(img_np, 1)
+            elif rotasi == 180:
+                return np.rot90(img_np, 2)
+            elif rotasi == 270:
+                return np.rot90(img_np, 3)
         elif opsi == "Histogram Equalization":
             gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
             return np.array(ImageOps.equalize(Image.fromarray(gray.astype(np.uint8))))
