@@ -67,6 +67,10 @@ if uploaded_file is not None:
     if opsi == "Rotasi":
         rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
 
+    # Slider untuk blur radius jika opsi "Smoothing (Gaussian Blur)" dipilih
+    if opsi == "Smoothing (Gaussian Blur)":
+        blur_radius = st.sidebar.slider("Blur Radius", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
         if opsi == "Citra Negatif":
@@ -94,7 +98,7 @@ if uploaded_file is not None:
             bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
             return bw
         elif opsi == "Smoothing (Gaussian Blur)":
-            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=2)))
+            return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=blur_radius)))
 
     # Pemrosesan gambar berdasarkan opsi
     hasil = olah_gambar(img_np, opsi)
