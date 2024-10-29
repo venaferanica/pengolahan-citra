@@ -63,6 +63,9 @@ if uploaded_file is not None:
     if opsi == "Black & White":
         threshold = st.sidebar.slider("Threshold Level", min_value=0, max_value=255, value=127)
 
+    if opsi == "Rotasi":
+        rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
+    
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
         if opsi == "Citra Negatif":
