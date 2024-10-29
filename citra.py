@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import os
 from io import BytesIO
 
-# Fungsi untuk menampilkan gambar
+# Fungsi untuk menampilkan gambar dengan judul
 def tampilkan_judul(citra, judul):
     st.image(citra, caption=judul, use_column_width=True)
 
@@ -44,35 +44,24 @@ if uploaded_file is not None:
     img = Image.open(uploaded_file)
     img_np = np.array(img)
 
-    # Dapatkan nama file asli
-    original_filename = uploaded_file.name
+    # Menampilkan gambar dan histogram asli
+    st.subheader("Gambar Asli dan Histogram")
+    col1, col2 = st.columns(2)
+    with col1:
+        tampilkan_judul(img_np, "Gambar Asli")
+    with col2:
+        tampilkan_histogram(img_np)
 
-    # Sidebar untuk memilih dua mode untuk dibandingkan
+    # Sidebar untuk memilih mode pemrosesan gambar
     st.sidebar.subheader("Pilih Mode Pengolahan Citra")
-    opsi1 = st.sidebar.selectbox("Mode 1", (
-        "Citra Asli",
-        "Citra Negatif",
-        "Grayscale",
-        "Rotasi 90 Derajat",
-        "Histogram Equalization",
-        "Black & White",
-        "Smoothing (Gaussian Blur)"
-    ))
-    opsi2 = st.sidebar.selectbox("Mode 2", (
-        "Citra Asli",
-        "Citra Negatif",
-        "Grayscale",
-        "Rotasi 90 Derajat",
-        "Histogram Equalization",
-        "Black & White",
-        "Smoothing (Gaussian Blur)"
+    opsi = st.sidebar.selectbox("Mode Pengolahan", (
+        "Citra Negatif", "Grayscale", "Rotasi 90 Derajat", 
+        "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)"
     ))
 
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
-        if opsi == "Citra Asli":
-            return img_np
-        elif opsi == "Citra Negatif":
+        if opsi == "Citra Negatif":
             return np.clip(255 - img_np.astype(np.uint8), 0, 255)
         elif opsi == "Grayscale":
             return np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
@@ -83,39 +72,36 @@ if uploaded_file is not None:
             return np.array(ImageOps.equalize(Image.fromarray(gray.astype(np.uint8))))
         elif opsi == "Black & White":
             gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-            bw = np.where(gray > 127, 255, 0).astype(np.uint8)
-            return bw
+            return np.where(gray > 127, 255, 0).astype(np.uint8)
         elif opsi == "Smoothing (Gaussian Blur)":
             return np.array(Image.fromarray(img_np.astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=2)))
 
-    # Hasil pemrosesan untuk dua mode
-    hasil1 = olah_gambar(img_np, opsi1)
-    hasil2 = olah_gambar(img_np, opsi2)
+    # Pemrosesan gambar berdasarkan opsi
+    hasil = olah_gambar(img_np, opsi)
 
-    # Menampilkan gambar dan histogram untuk kedua mode
+    # Menampilkan hasil pemrosesan dan histogram
+    st.subheader(f"Hasil - {opsi}")
     col1, col2 = st.columns(2)
     with col1:
-        tampilkan_judul(hasil1, f"Hasil - {opsi1}")
-        tampilkan_histogram(hasil1)
-
+        tampilkan_judul(hasil, f"Hasil - {opsi}")
     with col2:
-        tampilkan_judul(hasil2, f"Hasil - {opsi2}")
-        tampilkan_histogram(hasil2)
+        tampilkan_histogram(hasil)
 
-        # Membuat nama file untuk hasil yang akan diunduh
-        ext = os.path.splitext(original_filename)[1]
-        nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi2.lower().replace(' ', '_')}{ext}"
-        
-        # Konversi hasil2 menjadi bytes
-        hasil2_bytes = convert_image_to_bytes(hasil2)
-        
-        # Tombol download
-        st.download_button(
-            label=f"Download {opsi2}",
-            data=hasil2_bytes,
-            file_name=nama_file_simpan,
-            mime=f"image/{ext[1:]}"  # Menggunakan ekstensi file asli untuk MIME type
-        )
+    # Membuat nama file untuk hasil yang akan diunduh
+    original_filename = uploaded_file.name
+    ext = os.path.splitext(original_filename)[1]
+    nama_file_simpan = f"{os.path.splitext(original_filename)[0]}-{opsi.lower().replace(' ', '_')}{ext}"
+
+    # Konversi hasil menjadi bytes
+    hasil_bytes = convert_image_to_bytes(hasil)
+
+    # Tombol download
+    st.download_button(
+        label=f"Download {opsi}",
+        data=hasil_bytes,
+        file_name=nama_file_simpan,
+        mime=f"image/{ext[1:]}"
+    )
 
 else:
     st.write("Silakan upload gambar terlebih dahulu.")
