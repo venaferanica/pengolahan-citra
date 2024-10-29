@@ -76,7 +76,7 @@ if uploaded_file is not None:
             blur_radius = float(blur_radius)
         except ValueError:
             st.sidebar.error("Masukkan nilai numerik yang valid untuk blur radius.")
-            blur_radius = 2.0  # Default value jika input salah
+            blur_radius = 10  # Default value jika input salah
 
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
