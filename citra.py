@@ -68,8 +68,14 @@ if uploaded_file is not None:
         elif opsi == "Rotasi 90 Derajat":
             return np.rot90(img_np, 1)
         elif opsi == "Histogram Equalization":
-            gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
-            return np.array(ImageOps.equalize(Image.fromarray(gray.astype(np.uint8))))
+            img_rgb = Image.fromarray(img_np.astype(np.uint8))
+            r, g, b = img_rgb.split()
+            r_eq = ImageOps.equalize(r)
+            g_eq = ImageOps.equalize(g)
+            b_eq = ImageOps.equalize(b)
+            img_eq = Image.merge("RGB", (r_eq, g_eq, b_eq))
+            result_img = np.array(img_eq)
+            return result_img
         elif opsi == "Black & White":
             gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
             return np.where(gray > 127, 255, 0).astype(np.uint8)
