@@ -59,17 +59,24 @@ if uploaded_file is not None:
         "Histogram Equalization", "Black & White", "Smoothing (Gaussian Blur)"
     ))
 
-    # Slider untuk threshold jika opsi "Black & White" dipilih
+    # Input untuk threshold jika opsi "Black & White" dipilih
     if opsi == "Black & White":
-        threshold = st.sidebar.slider("Threshold Level", min_value=0, max_value=255, value=127)
+        threshold = st.sidebar.number_input("Threshold Level", min_value=0, max_value=255, value=127)
 
     # Button untuk memilih derajat rotasi jika opsi "Rotasi" dipilih
     if opsi == "Rotasi":
         rotasi = st.sidebar.radio("Pilih Derajat Rotasi", (90, 180, 270))
 
-    # Slider untuk blur radius jika opsi "Smoothing (Gaussian Blur)" dipilih
+    # Field input untuk blur radius jika opsi "Smoothing (Gaussian Blur)" dipilih
     if opsi == "Smoothing (Gaussian Blur)":
-        blur_radius = st.sidebar.slider("Blur Radius", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+        blur_radius = st.sidebar.text_input("Masukkan Blur Radius", value="2.0")
+
+        # Validasi input agar bisa dikonversi menjadi float
+        try:
+            blur_radius = float(blur_radius)
+        except ValueError:
+            st.sidebar.error("Masukkan nilai numerik yang valid untuk blur radius.")
+            blur_radius = 2.0  # Default value jika input salah
 
     # Fungsi untuk mengolah gambar berdasarkan opsi
     def olah_gambar(img_np, opsi):
@@ -91,8 +98,7 @@ if uploaded_file is not None:
             g_eq = ImageOps.equalize(g)
             b_eq = ImageOps.equalize(b)
             img_eq = Image.merge("RGB", (r_eq, g_eq, b_eq))
-            result_img = np.array(img_eq)
-            return result_img
+            return np.array(img_eq)
         elif opsi == "Black & White":
             gray = np.array(ImageOps.grayscale(Image.fromarray(img_np.astype(np.uint8))))
             bw = np.where(gray > threshold, 255, 0).astype(np.uint8)
