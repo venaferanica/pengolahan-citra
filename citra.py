@@ -69,7 +69,7 @@ if uploaded_file is not None:
 
     # Field input untuk blur radius jika opsi "Smoothing (Gaussian Blur)" dipilih
     if opsi == "Smoothing (Gaussian Blur)":
-        blur_radius = st.sidebar.text_input("Masukkan Blur Radius", value="2.0")
+        blur_radius = st.sidebar.text_input("Masukkan Blur Radius", value="10")
         try:
             blur_radius = float(blur_radius)
         except ValueError:
